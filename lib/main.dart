@@ -57,6 +57,13 @@ class _BookListScreenState extends State<BookListScreen> {
     });
   }
 
+  void _showBookDetails(Book book) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => BookDetailScreen(book)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,11 +103,38 @@ class _BookListScreenState extends State<BookListScreen> {
                 return ListTile(
                   title: Text(book.title),
                   subtitle: Text('${book.author}, ${book.classification}'),
+                  onTap: () => _showBookDetails(book),
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class BookDetailScreen extends StatelessWidget {
+  final Book book;
+
+  BookDetailScreen(this.book);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Detalhes do Livro'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Título: ${book.title}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text('Autor: ${book.author}', style: TextStyle(fontSize: 18)),
+            Text('Classificação: ${book.classification}', style: TextStyle(fontSize: 18)),
+          ],
+        ),
       ),
     );
   }

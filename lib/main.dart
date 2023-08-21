@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(BookApp());
+  runApp(MyApp());
 }
 
 class Book {
@@ -9,16 +9,16 @@ class Book {
   final String author;
   final String classification;
 
-  Book(this.title, this.author, this.classification);
+  Book({required this.title, required this.author, required this.classification});
 }
 
-class BookApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
   final List<Book> books = [];
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Book Registration App',
+      title: 'Cadastro de Livros',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -27,106 +27,80 @@ class BookApp extends StatelessWidget {
   }
 }
 
-class BookListScreen extends StatelessWidget {
+class BookListScreen extends StatefulWidget {
   final List<Book> books;
 
   BookListScreen(this.books);
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Book List'),
-      ),
-      body: ListView.builder(
-        itemCount: books.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(books[index].title),
-            subtitle: Text('Author: ${books[index].author}\nClassification: ${books[index].classification}'),
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final newBook = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => BookFormScreen()),
-          );
-
-          if (newBook != null) {
-            books.add(newBook);
-          }
-        },
-        child: Icon(Icons.add),
-      ),
-    );
-  }
+  _BookListScreenState createState() => _BookListScreenState();
 }
 
-class BookFormScreen extends StatefulWidget {
-  @override
-  _BookFormScreenState createState() => _BookFormScreenState();
-}
+class _BookListScreenState extends State<BookListScreen> {
+  TextEditingController _titleController = TextEditingController();
+  TextEditingController _authorController = TextEditingController();
+  TextEditingController _classificationController = TextEditingController();
 
-class _BookFormScreenState extends State<BookFormScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _authorController = TextEditingController();
-  final TextEditingController _classificationController = TextEditingController();
+  void _addBook() {
+    setState(() {
+      final newBook = Book(
+        title: _titleController.text,
+        author: _authorController.text,
+        classification: _classificationController.text,
+      );
 
-  String? _validateNotEmpty(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'This field is required';
-    }
-    return null;
+      widget.books.add(newBook);
+
+      _titleController.clear();
+      _authorController.clear();
+      _classificationController.clear();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Book'),
+        title: Text('Cadastro de Livros'),
       ),
-      body: Form(
-        key: _formKey,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(labelText: 'Title'),
-                validator: _validateNotEmpty,
-              ),
-              TextFormField(
-                controller: _authorController,
-                decoration: InputDecoration(labelText: 'Author'),
-                validator: _validateNotEmpty,
-              ),
-              TextFormField(
-                controller: _classificationController,
-                decoration: InputDecoration(labelText: 'Classification'),
-                validator: _validateNotEmpty,
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final newBook = Book(
-                      _titleController.text,
-                      _authorController.text,
-                      _classificationController.text,
-                    );
-                    Navigator.pop(context, newBook);
-                  }
-                },
-                child: Text('Add Book'),
-              ),
-            ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: InputDecoration(labelText: 'Título'),
+                ),
+                TextField(
+                  controller: _authorController,
+                  decoration: InputDecoration(labelText: 'Autor'),
+                ),
+                TextField(
+                  controller: _classificationController,
+                  decoration: InputDecoration(labelText: 'Classificação'),
+                ),
+                ElevatedButton(
+                  onPressed: _addBook,
+                  child: Text('Adicionar Livro'),
+                ),
+              ],
+            ),
           ),
-        ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: widget.books.length,
+              itemBuilder: (context, index) {
+                final book = widget.books[index];
+                return ListTile(
+                  title: Text(book.title),
+                  subtitle: Text('${book.author}, ${book.classification}'),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cadastro de Livros',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.red,
       ),
       home: BookListScreen(books),
     );
@@ -40,6 +40,7 @@ class _BookListScreenState extends State<BookListScreen> {
   TextEditingController _titleController = TextEditingController();
   TextEditingController _authorController = TextEditingController();
   TextEditingController _classificationController = TextEditingController();
+  
 
   void _addBook() {
     setState(() {

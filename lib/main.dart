@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class Book {
+  final int id;
   final String title;
   final String author;
   final String classification;
 
-  Book({required this.title, required this.author, required this.classification});
+  Book({required this.id, required this.title, required this.author, required this.classification});
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'author': author,
+      'classification': classification,
+    };
+  }
 }
 
 class MyApp extends StatelessWidget {
-  final List<Book> books = [];
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -22,47 +32,59 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.red,
       ),
-      home: BookListScreen(books),
+      home: BookListScreen(),
     );
   }
 }
 
 class BookListScreen extends StatefulWidget {
-  final List<Book> books;
-
-  BookListScreen(this.books);
-
   @override
   _BookListScreenState createState() => _BookListScreenState();
 }
 
 class _BookListScreenState extends State<BookListScreen> {
-  TextEditingController _titleController = TextEditingController();
-  TextEditingController _authorController = TextEditingController();
-  TextEditingController _classificationController = TextEditingController();
-  
+  late Database _database;
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _authorController = TextEditingController();
+  final TextEditingController _classificationController = TextEditingController();
 
-  void _addBook() {
-    setState(() {
-      final newBook = Book(
-        title: _titleController.text,
-        author: _authorController.text,
-        classification: _classificationController.text,
-      );
-
-      widget.books.add(newBook);
-
-      _titleController.clear();
-      _authorController.clear();
-      _classificationController.clear();
-    });
+  @override
+  void initState() {
+    super.initState();
+    _initDatabase();
   }
 
-  void _showBookDetails(Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => BookDetailScreen(book)),
+  Future<void> _initDatabase() async {
+    _database = await openDatabase(
+      join(await getDatabasesPath(), 'books_database.db'),
+      onCreate: (db, version) {
+        return db.execute(
+          'CREATE TABLE books(id INTEGER PRIMARY KEY, title TEXT, author TEXT, classification TEXT)',
+        );
+      },
+      version: 1,
     );
+  }
+
+  Future<void> _addBook() async {
+    final newBook = Book(
+      id: DateTime.now().millisecondsSinceEpoch,
+      title: _titleController.text,
+      author: _authorController.text,
+      classification: _classificationController.text,
+    );
+
+    await _database.insert(
+      'books',
+      newBook.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    _titleController.clear();
+    _authorController.clear();
+    _classificationController.clear();
+
+    setState(() {});
   }
 
   @override
@@ -96,21 +118,61 @@ class _BookListScreenState extends State<BookListScreen> {
               ],
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.books.length,
-              itemBuilder: (context, index) {
-                final book = widget.books[index];
-                return ListTile(
-                  title: Text(book.title),
-                  subtitle: Text('${book.author}, ${book.classification}'),
-                  onTap: () => _showBookDetails(book),
+          FutureBuilder<void>(
+            future: _initDatabase(), // Initialize the database before building UI
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                return FutureBuilder<List<Book>>(
+                  future: _getBooks(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Text('Nenhum livro cadastrado.'),
+                      );
+                    }
+                    return Expanded(
+                      child: ListView.builder(
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final book = snapshot.data![index];
+                          return ListTile(
+                            title: Text(book.title),
+                            subtitle: Text('${book.author}, ${book.classification}'),
+                            onTap: () => _showBookDetails(book),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
-              },
-            ),
+              } else {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+            },
           ),
         ],
       ),
+    );
+  }
+
+  Future<List<Book>> _getBooks() async {
+    final List<Map<String, dynamic>> maps = await _database.query('books');
+    return List.generate(maps.length, (i) {
+      return Book(  
+        id: maps[i]['id'],
+        title: maps[i]['title'],
+        author: maps[i]['author'],
+        classification: maps[i]['classification'],
+      );
+    });
+  }
+
+  void _showBookDetails(Book book) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => BookDetailScreen(book)),
     );
   }
 }
